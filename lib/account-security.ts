@@ -5,6 +5,8 @@ import {
   type User,
 } from "firebase/auth"
 
+export const MIN_PASSWORD_LENGTH = 8
+
 export type PasswordValidationError =
   | "missing-current-password"
   | "weak-password"
@@ -17,7 +19,7 @@ export function validatePasswordChangeInput(
   confirmation: string
 ): PasswordValidationError {
   if (!currentPassword.trim()) return "missing-current-password"
-  if (newPassword.length < 8) return "weak-password"
+  if (newPassword.length < MIN_PASSWORD_LENGTH) return "weak-password"
   if (newPassword !== confirmation) return "password-mismatch"
   return null
 }
@@ -48,6 +50,14 @@ export function getPasswordChangeErrorMessage(error: unknown): string {
   }
 }
 
+export function assertNewPasswordPolicy(newPassword: string): void {
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    throw Object.assign(new Error(`Password must contain at least ${MIN_PASSWORD_LENGTH} characters`), {
+      code: "auth/weak-password",
+    })
+  }
+}
+
 function requireEmail(user: User): string {
   if (!user.email) {
     throw Object.assign(new Error("No email/password credential is linked to this account"), {
@@ -67,6 +77,7 @@ export async function reauthenticateUser(
 }
 
 export async function updateUserPassword(user: User, newPassword: string): Promise<void> {
+  assertNewPasswordPolicy(newPassword)
   await updatePassword(user, newPassword)
 }
 
@@ -75,6 +86,7 @@ export async function changeUserPassword(
   currentPassword: string,
   newPassword: string
 ): Promise<void> {
+  assertNewPasswordPolicy(newPassword)
   await reauthenticateUser(user, currentPassword)
   await updateUserPassword(user, newPassword)
 }

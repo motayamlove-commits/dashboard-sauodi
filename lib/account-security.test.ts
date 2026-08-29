@@ -31,6 +31,12 @@ describe("password change validation", () => {
     )
   })
 
+  it("rejects the seven-character password used in the reported incident", () => {
+    expect(validatePasswordChangeInput("old-password", "Mq1988@", "Mq1988@")).toBe(
+      "weak-password"
+    )
+  })
+
   it("requires confirmation to match", () => {
     expect(
       validatePasswordChangeInput("old-password", "new-password", "different-password")
@@ -70,6 +76,25 @@ describe("changeUserPassword", () => {
 
     expect(mocks.credential).toHaveBeenCalledWith("admin@example.com", "old-password")
     expect(mocks.reauthenticateWithCredential).toHaveBeenCalledWith(user, { providerId: "password" })
+    expect(mocks.updatePassword).toHaveBeenCalledWith(user, "new-password")
+  })
+
+  it("rejects a short password before contacting Firebase", async () => {
+    await expect(changeUserPassword(user, "old-password", "Mq1988@")).rejects.toMatchObject({
+      code: "auth/weak-password",
+    })
+    expect(mocks.credential).not.toHaveBeenCalled()
+    expect(mocks.reauthenticateWithCredential).not.toHaveBeenCalled()
+    expect(mocks.updatePassword).not.toHaveBeenCalled()
+  })
+
+  it("propagates a Firebase update failure after reauthentication", async () => {
+    mocks.updatePassword.mockRejectedValueOnce({ code: "auth/weak-password" })
+
+    await expect(changeUserPassword(user, "old-password", "new-password")).rejects.toMatchObject({
+      code: "auth/weak-password",
+    })
+    expect(mocks.reauthenticateWithCredential).toHaveBeenCalled()
     expect(mocks.updatePassword).toHaveBeenCalledWith(user, "new-password")
   })
 

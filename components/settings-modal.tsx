@@ -17,7 +17,11 @@ import {
   type AdminSession,
 } from "@/lib/firebase/sessions"
 import { useAuth } from "@/lib/auth-context"
-import { getPasswordChangeErrorMessage, validatePasswordChangeInput } from "@/lib/account-security"
+import {
+  MIN_PASSWORD_LENGTH,
+  getPasswordChangeErrorMessage,
+  validatePasswordChangeInput,
+} from "@/lib/account-security"
 import { toast } from "sonner"
 
 interface SettingsModalProps {
@@ -93,6 +97,7 @@ interface PasswordFieldProps {
   onToggle: () => void
   disabled: boolean
   autoComplete?: string
+  minLength?: number
 }
 
 function PasswordField({
@@ -104,6 +109,7 @@ function PasswordField({
   onToggle,
   disabled,
   autoComplete = "current-password",
+  minLength,
 }: PasswordFieldProps) {
   return (
     <div>
@@ -117,6 +123,7 @@ function PasswordField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           autoComplete={autoComplete}
+          minLength={minLength}
           disabled={disabled}
           dir="ltr"
           className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 pe-12 text-base text-gray-900 outline-none transition-colors focus:border-amber-500 disabled:bg-gray-100"
@@ -603,6 +610,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     onToggle={() => setShowNewPassword((visible) => !visible)}
                     disabled={isChangingPassword}
                     autoComplete="new-password"
+                    minLength={MIN_PASSWORD_LENGTH}
                   />
                   <PasswordField
                     id="confirm-password"
@@ -613,10 +621,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     onToggle={() => setShowConfirmPassword((visible) => !visible)}
                     disabled={isChangingPassword}
                     autoComplete="new-password"
+                    minLength={MIN_PASSWORD_LENGTH}
                   />
                 </div>
                 <div className="mt-4 rounded-lg border border-amber-200 bg-white/70 p-3 text-xs leading-6 text-gray-600">
-                  يجب أن تتكون كلمة المرور الجديدة من 8 أحرف على الأقل. بعد التغيير سيتم إنهاء جلسات الأجهزة الأخرى.
+                  يجب أن تتكون كلمة المرور الجديدة من {MIN_PASSWORD_LENGTH} أحرف على الأقل. بعد التغيير سيتم إنهاء جلسات الأجهزة الأخرى.
                 </div>
                 <button
                   onClick={handleChangePassword}

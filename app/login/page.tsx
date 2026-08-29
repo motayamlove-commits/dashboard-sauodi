@@ -12,6 +12,8 @@ import {
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
+import { getLoginErrorMessage, getPasswordResetErrorMessage } from "@/lib/login-security";
+import { sendPasswordReset } from "@/lib/password-reset";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -19,6 +21,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState("");
   const navigate = useRouter();
   const { user, loading: authLoading } = useAuth();
 
@@ -31,25 +35,36 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setResetSent("");
     setLoading(true);
     
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
       navigate.push("/");
-    } catch (err: any) {
-      if (err.code === "auth/user-not-found") {
-        setError("البريد الإلكتروني غير مسجل");
-      } else if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
-        setError("كلمة المرور غير صحيحة");
-      } else if (err.code === "auth/invalid-email") {
-        setError("البريد الإلكتروني غير صالح");
-      } else if (err.code === "auth/too-many-requests") {
-        setError("تم تجاوز عدد المحاولات. حاول لاحقاً");
-      } else {
-        setError("حدث خطأ أثناء تسجيل الدخول");
-      }
+    } catch (err: unknown) {
+      setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      setError("أدخل بريدك الإلكتروني أولًا لإرسال رابط إعادة التعيين");
+      return;
+    }
+
+    setError("");
+    setResetSent("");
+    setResetLoading(true);
+    try {
+      await sendPasswordReset(auth, normalizedEmail);
+      setResetSent("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني");
+    } catch (err: unknown) {
+      setError(getPasswordResetErrorMessage(err));
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -189,7 +204,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || resetLoading}
                 className="w-full mt-4 py-3.5 px-4 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
                 style={{
                   background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)",
@@ -209,6 +224,21 @@ export default function LoginPage() {
                   </span>
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={handlePasswordReset}
+                disabled={loading || resetLoading}
+                className="w-full mt-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs font-semibold text-slate-300 transition-colors hover:border-indigo-400/40 hover:bg-indigo-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {resetLoading ? "جارٍ إرسال رابط التعيين..." : "نسيت كلمة المرور؟ أرسل رابط إعادة التعيين"}
+              </button>
+
+              {resetSent && (
+                <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-center text-xs text-emerald-200">
+                  {resetSent}
+                </div>
+              )}
             </form>
 
             {/* Footer */}
