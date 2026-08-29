@@ -60,7 +60,7 @@ export default function LoginPage() {
     setResetLoading(true);
     try {
       await sendPasswordReset(auth, normalizedEmail);
-      setResetSent("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني");
+      setResetSent("تم قبول طلب إعادة التعيين. إذا كان البريد مسجلًا فسيصلك الرابط؛ تحقق من الوارد والرسائل غير المرغوب فيها");
     } catch (err: unknown) {
       setError(getPasswordResetErrorMessage(err));
     } finally {
